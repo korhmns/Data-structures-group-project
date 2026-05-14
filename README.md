@@ -111,8 +111,8 @@ After setup, the main menu appears each round:
 Each active player enters a bet between 1 and their current chip count.
 
 ```
-Alice (Chips: 1000) — Bet amount: 200
-✔ Alice bets 200 chips.
+Viar (Chips: 1000) — Bet amount: 200
+✔ Viar bets 200 chips.
 
 Undo a bet? (y/n): n
 ```
@@ -124,7 +124,7 @@ Cards are displayed as `RANK-SUIT_INITIAL`. The dealer's first card is hidden.
 
 ```
 Dealer: [??] K-H   
-Alice:  7-S A-H    (Total: 18)
+Viar:  7-S A-H    (Total: 18)
 ```
 
 #### Step 3 — Choose an Action
@@ -147,8 +147,8 @@ The dealer reveals their hidden card and hits until reaching **17 or higher**.
 Hands are compared and chips are paid out automatically.
 
 ```
-Alice (19)  vs  Dealer (17): ✅ WIN  +200 chips
-Bob   (14)  vs  Dealer (17): ❌ LOSE  -150 chips
+Viar (19)  vs  Dealer (17): ✅ WIN  +200 chips
+Korn   (14)  vs  Dealer (17): ❌ LOSE  -150 chips
 ```
 
 ---
@@ -174,8 +174,8 @@ Displays all players sorted by chip count:
 ╠══════════════════════════════════════════╣
 ║  #   Name            Chips   W    L    D ║
 ╠══════════════════════════════════════════╣
-║  1   Alice           1450    3    1    0 ║
-║  2   Bob              800    1    3    0 ║
+║  1   Viar            1450    3    1    0 ║
+║  2   Korn             800    1    3    0 ║
 ╚══════════════════════════════════════════╝
 ```
 
