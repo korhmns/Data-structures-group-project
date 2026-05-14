@@ -4,18 +4,6 @@ A console-based Blackjack game written in C++ for the CPE112: Programming with D
 
 ---
 
-## 📋 Table of Contents
-
-- [Features](#features)
-- [Data Structures Used](#data-structures-used)
-- [Requirements](#requirements)
-- [Installation & Compilation](#installation--compilation)
-- [How to Use](#how-to-use)
-- [Gameplay Rules](#gameplay-rules)
-- [Project Structure](#project-structure)
-
----
-
 ## ✨ Features
 
 - **1–4 player** local multiplayer support
