@@ -204,4 +204,3 @@ blackjack-casino/
 | Akarawit Srivanno | 68070503484 |
 | Korn Kongkar | 68070503495 |
 
-CPE112 — Programming with Data Structures · Semester 2/2025
