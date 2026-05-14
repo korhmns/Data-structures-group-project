@@ -1,24 +1,3 @@
-// ============================================================
-//  BLACKJACK CASINO SYSTEM
-//  CPE112: Programming with Data Structures — Final Project
-//  2/2025 Semester
-//
-//  Data Structures Used:
-//    1. Stack        — Card deck (deal from top) + Bet undo history
-//    2. Linked List  — Each player's hand (dynamic card storage)
-//    3. Queue        — Player turn order (FIFO)
-//    4. Hash Table   — Leaderboard / player stats (O(1) lookup)
-//
-//  Algorithm:
-//    - Fisher-Yates Shuffle (O(n)) for deck randomization
-//    - Ace resolution (greedy reduction: Ace = 11 → 1 if bust)
-//    - Insertion Sort on leaderboard by chip count
-//    - Hash function: polynomial rolling hash with linear probing
-//
-//  Compile:  g++ -o blackjack blackjack.cpp
-//  Run:      ./blackjack
-// ============================================================
-
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -26,38 +5,20 @@
 #include <climits>
 using namespace std;
 
-// ============================================================
-//  CONSTANTS
-// ============================================================
-#define DECK_SIZE   52
-#define MAX_PLAYERS  4
-#define HASH_SIZE   101   // prime number → better distribution
+#define DECK_SIZE    52
+#define MAX_PLAYERS   4
+#define HASH_SIZE   101
 #define START_CHIPS 1000
 
-// ============================================================
-//  CARD STRUCTURE
-// ============================================================
 struct Card {
-    char suit[10];  // "Hearts" | "Diamonds" | "Clubs" | "Spades"
-    char rank[5];   // "2"–"10" | "J" | "Q" | "K" | "A"
-    int  value;     // numeric value (Ace starts as 11)
+    char suit[10];
+    char rank[5];
+    int  value;
 };
 
-// ============================================================
-//  DATA STRUCTURE 1: STACK
-//  Used for: (a) Card deck — cards are pushed in, dealt from top (LIFO)
-//            (b) Bet undo history — store bets, pop to undo
-//
-//  Why Stack?
-//    • Dealing a card = pop from top → O(1)
-//    • Undo last action = pop from top → O(1)
-//    • Alternative: Array with index — Stack is cleaner & dynamic
-// ============================================================
-
-// --- Generic Card Stack (Deck) ---
 struct StackNode {
-    Card        card;
-    StackNode*  next;
+    Card       card;
+    StackNode* next;
 };
 
 struct Stack {
@@ -65,10 +26,10 @@ struct Stack {
     int        size;
 };
 
-void  initStack      (Stack* s)         { s->top = NULL; s->size = 0; }
-bool  isStackEmpty   (Stack* s)         { return s->top == NULL; }
+void initStack    (Stack* s)         { s->top = NULL; s->size = 0; }
+bool isStackEmpty (Stack* s)         { return s->top == NULL; }
 
-void  pushCard       (Stack* s, Card c) {
+void pushCard     (Stack* s, Card c) {
     StackNode* node = new StackNode();
     node->card = c;
     node->next = s->top;
@@ -76,7 +37,7 @@ void  pushCard       (Stack* s, Card c) {
     s->size++;
 }
 
-Card  popCard        (Stack* s) {
+Card popCard      (Stack* s) {
     if (isStackEmpty(s)) { Card empty = {"", "", 0}; return empty; }
     StackNode* temp = s->top;
     Card c          = temp->card;
@@ -86,11 +47,10 @@ Card  popCard        (Stack* s) {
     return c;
 }
 
-void  freeStack      (Stack* s) {
+void freeStack    (Stack* s) {
     while (!isStackEmpty(s)) popCard(s);
 }
 
-// --- Bet Undo Stack ---
 struct BetRecord {
     int playerIndex;
     int betAmount;
@@ -105,40 +65,30 @@ struct BetStack {
     BetNode* top;
 };
 
-void      initBetStack  (BetStack* bs)                   { bs->top = NULL; }
-bool      isBetEmpty    (BetStack* bs)                   { return bs->top == NULL; }
+void      initBetStack (BetStack* bs)                   { bs->top = NULL; }
+bool      isBetEmpty   (BetStack* bs)                   { return bs->top == NULL; }
 
-void      pushBet       (BetStack* bs, int idx, int amt) {
-    BetNode* node    = new BetNode();
-    node->record     = {idx, amt};
-    node->next       = bs->top;
-    bs->top          = node;
+void      pushBet      (BetStack* bs, int idx, int amt) {
+    BetNode* node = new BetNode();
+    node->record  = {idx, amt};
+    node->next    = bs->top;
+    bs->top       = node;
 }
 
-BetRecord popBet        (BetStack* bs) {
-    BetRecord empty  = {-1, 0};
+BetRecord popBet       (BetStack* bs) {
+    BetRecord empty = {-1, 0};
     if (isBetEmpty(bs)) return empty;
-    BetNode* temp    = bs->top;
-    BetRecord r      = temp->record;
-    bs->top          = bs->top->next;
+    BetNode*  temp = bs->top;
+    BetRecord r    = temp->record;
+    bs->top        = bs->top->next;
     delete temp;
     return r;
 }
 
-void      freeBetStack  (BetStack* bs) {
+void      freeBetStack (BetStack* bs) {
     while (!isBetEmpty(bs)) popBet(bs);
 }
 
-// ============================================================
-//  DATA STRUCTURE 2: LINKED LIST
-//  Used for: Each player's hand of cards
-//
-//  Why Linked List?
-//    • Number of cards in hand is unknown at runtime → dynamic size
-//    • Inserting a new card = O(1) append (or O(n) traverse to tail)
-//    • No wasted memory unlike a fixed array
-//    • Alternative: vector<Card> — Linked List avoids reallocation overhead
-// ============================================================
 struct HandNode {
     Card      card;
     HandNode* next;
@@ -176,8 +126,7 @@ void clearHand     (Hand* h) {
     h->count = 0;
 }
 
-// Ace resolution algorithm: Ace = 11, reduce to 1 if hand > 21
-int  calculateHandValue (Hand* h) {
+int calculateHandValue (Hand* h) {
     int total = 0, aces = 0;
     HandNode* curr = h->head;
     while (curr) {
@@ -209,16 +158,6 @@ void displayHand (Hand* h, const char* name, bool hideFirst = false) {
 bool isBlackjack (Hand* h) { return h->count == 2 && calculateHandValue(h) == 21; }
 bool isBust      (Hand* h) { return calculateHandValue(h) > 21; }
 
-// ============================================================
-//  DATA STRUCTURE 3: QUEUE
-//  Used for: Player turn order
-//
-//  Why Queue?
-//    • Turns go in the order players sat down (FIFO)
-//    • Enqueue all players at round start, dequeue each turn
-//    • O(1) enqueue and dequeue
-//    • Alternative: Loop with index — Queue makes turn order explicit & flexible
-// ============================================================
 struct QueueNode {
     int        playerIndex;
     QueueNode* next;
@@ -230,19 +169,19 @@ struct Queue {
     int        size;
 };
 
-void initQueue   (Queue* q) { q->front = NULL; q->rear = NULL; q->size = 0; }
-bool isQueueEmpty(Queue* q) { return q->front == NULL; }
+void initQueue    (Queue* q) { q->front = NULL; q->rear = NULL; q->size = 0; }
+bool isQueueEmpty (Queue* q) { return q->front == NULL; }
 
-void enqueue     (Queue* q, int idx) {
-    QueueNode* node  = new QueueNode();
+void enqueue      (Queue* q, int idx) {
+    QueueNode* node   = new QueueNode();
     node->playerIndex = idx;
-    node->next       = NULL;
+    node->next        = NULL;
     if (q->rear == NULL) { q->front = q->rear = node; }
     else { q->rear->next = node; q->rear = node; }
     q->size++;
 }
 
-int  dequeue     (Queue* q) {
+int  dequeue      (Queue* q) {
     if (isQueueEmpty(q)) return -1;
     QueueNode* temp = q->front;
     int idx         = temp->playerIndex;
@@ -253,19 +192,8 @@ int  dequeue     (Queue* q) {
     return idx;
 }
 
-void clearQueue  (Queue* q) { while (!isQueueEmpty(q)) dequeue(q); }
+void clearQueue   (Queue* q) { while (!isQueueEmpty(q)) dequeue(q); }
 
-// ============================================================
-//  DATA STRUCTURE 4: HASH TABLE
-//  Used for: Player leaderboard / stats storage
-//
-//  Why Hash Table?
-//    • O(1) average lookup by player name
-//    • Persistent stats across multiple rounds
-//    • Collision resolved with linear probing
-//    • Hash: polynomial rolling hash → good distribution
-//    • Alternative: Sorted array — O(log n) search vs O(1) hash lookup
-// ============================================================
 struct PlayerStats {
     char name[50];
     int  wins;
@@ -284,7 +212,6 @@ void initHashTable (HashTable* ht) {
         ht->table[i].occupied = false;
 }
 
-// Polynomial rolling hash function
 int hashFn (const char* name) {
     int hash = 0;
     for (int i = 0; name[i] != '\0'; i++)
@@ -295,12 +222,10 @@ int hashFn (const char* name) {
 void insertStats (HashTable* ht, const char* name, int chips) {
     int idx = hashFn(name);
     while (ht->table[idx].occupied && strcmp(ht->table[idx].name, name) != 0)
-        idx = (idx + 1) % HASH_SIZE;   // linear probing
+        idx = (idx + 1) % HASH_SIZE;
     if (!ht->table[idx].occupied) {
-        strcpy(ht->table[idx].name, name);
         ht->table[idx] = {"", 0, 0, 0, chips, true};
         strcpy(ht->table[idx].name, name);
-        ht->table[idx].totalChips = chips;
     }
 }
 
@@ -317,7 +242,6 @@ PlayerStats* findStats (HashTable* ht, const char* name) {
 }
 
 void updateStats (HashTable* ht, const char* name, int result, int chips) {
-    // result: 1 = win, -1 = loss, 0 = draw
     PlayerStats* ps = findStats(ht, name);
     if (!ps) return;
     if      (result ==  1) ps->wins++;
@@ -326,7 +250,6 @@ void updateStats (HashTable* ht, const char* name, int result, int chips) {
     ps->totalChips = chips;
 }
 
-// Insertion Sort (ascending by totalChips, reversed for display)
 void displayLeaderboard (HashTable* ht) {
     PlayerStats sorted[HASH_SIZE];
     int count = 0;
@@ -334,7 +257,6 @@ void displayLeaderboard (HashTable* ht) {
         if (ht->table[i].occupied)
             sorted[count++] = ht->table[i];
 
-    // Insertion sort descending by totalChips
     for (int i = 1; i < count; i++) {
         PlayerStats key = sorted[i];
         int j = i - 1;
@@ -361,23 +283,16 @@ void displayLeaderboard (HashTable* ht) {
     cout << "╚══════════════════════════════════════════╝\n";
 }
 
-// ============================================================
-//  PLAYER STRUCTURE
-// ============================================================
 struct Player {
     char name[50];
     int  chips;
     int  bet;
     Hand hand;
-    bool isActive;    // still has chips / in the game
+    bool isActive;
     bool isBust;
     bool isBlackjackWin;
 };
 
-// ============================================================
-//  ALGORITHM: FISHER-YATES SHUFFLE  O(n)
-//  Builds 52-card deck array, shuffles in place, pushes to Stack
-// ============================================================
 Card createCard (const char* rank, const char* suit) {
     Card c;
     strcpy(c.rank, rank);
@@ -385,7 +300,7 @@ Card createCard (const char* rank, const char* suit) {
     if (strcmp(rank, "J") == 0 || strcmp(rank, "Q") == 0 || strcmp(rank, "K") == 0)
         c.value = 10;
     else if (strcmp(rank, "A") == 0)
-        c.value = 11;   // Ace = 11 initially; ace resolution in calculateHandValue
+        c.value = 11;
     else
         c.value = atoi(rank);
     return c;
@@ -402,7 +317,6 @@ void initDeck (Stack* deck) {
         for (int r = 0; r < 13; r++)
             cards[idx++] = createCard(ranks[r], suits[s]);
 
-    // Fisher-Yates Shuffle: O(n)
     for (int i = DECK_SIZE - 1; i > 0; i--) {
         int j    = rand() % (i + 1);
         Card tmp = cards[i];
@@ -416,9 +330,6 @@ void initDeck (Stack* deck) {
 
 Card dealCard (Stack* deck) { return popCard(deck); }
 
-// ============================================================
-//  UI HELPERS
-// ============================================================
 void printBanner () {
     cout << "\n";
     cout << " ██████╗ ██╗      █████╗  ██████╗██╗  ██╗     ██╗ █████╗  ██████╗██╗  ██╗\n";
@@ -443,20 +354,14 @@ int safeInputInt (int minVal, int maxVal) {
     return val;
 }
 
-// ============================================================
-//  GLOBAL GAME STATE
-// ============================================================
-Player   players[MAX_PLAYERS];
-int      numPlayers = 0;
-Player   dealer;
-Stack    deck;
-Queue    turnQueue;
-BetStack betHistory;
+Player    players[MAX_PLAYERS];
+int       numPlayers = 0;
+Player    dealer;
+Stack     deck;
+Queue     turnQueue;
+BetStack  betHistory;
 HashTable leaderboard;
 
-// ============================================================
-//  SETUP
-// ============================================================
 void setupPlayers () {
     cout << "\nHow many players? (1-" << MAX_PLAYERS << "): ";
     numPlayers = safeInputInt(1, MAX_PLAYERS);
@@ -479,12 +384,9 @@ void setupPlayers () {
     initHand(&dealer.hand);
 }
 
-// ============================================================
-//  BETTING PHASE
-// ============================================================
 void placeBets () {
     cout << "\n--- PLACE BETS ---\n";
-    freeBetStack(&betHistory);   // clear undo history each round
+    freeBetStack(&betHistory);
 
     for (int i = 0; i < numPlayers; i++) {
         if (!players[i].isActive) continue;
@@ -507,11 +409,7 @@ void undoLastBet () {
          << "'s bet of " << r.betAmount << " chips returned.\n";
 }
 
-// ============================================================
-//  DEAL INITIAL CARDS
-// ============================================================
 void dealInitialCards () {
-    // Two rounds: each player and dealer get one card per round
     for (int round = 0; round < 2; round++) {
         for (int i = 0; i < numPlayers; i++)
             if (players[i].isActive)
@@ -520,21 +418,17 @@ void dealInitialCards () {
     }
 }
 
-// ============================================================
-//  PLAYER TURN  (uses dequeued player index)
-// ============================================================
 void playerTurn (int idx) {
     printLine();
     cout << "\n>>> " << players[idx].name << "'s Turn <<<\n";
-    displayHand(&dealer.hand,      "Dealer",                true);  // hide first card
+    displayHand(&dealer.hand, "Dealer", true);
     displayHand(&players[idx].hand, players[idx].name);
 
-    // Instant blackjack win
     if (isBlackjack(&players[idx].hand)) {
         cout << "  🎉 BLACKJACK! " << players[idx].name << " wins 3:2!\n";
-        players[idx].chips          += (int)(players[idx].bet * 2.5);
-        players[idx].bet             = 0;
-        players[idx].isBlackjackWin  = true;
+        players[idx].chips         += (int)(players[idx].bet * 2.5);
+        players[idx].bet            = 0;
+        players[idx].isBlackjackWin = true;
         updateStats(&leaderboard, players[idx].name, 1, players[idx].chips);
         return;
     }
@@ -545,7 +439,6 @@ void playerTurn (int idx) {
         int choice = safeInputInt(1, 3);
 
         if (choice == 1) {
-            // HIT
             addCardToHand(&players[idx].hand, dealCard(&deck));
             displayHand(&players[idx].hand, players[idx].name);
             if (isBust(&players[idx].hand)) {
@@ -558,17 +451,15 @@ void playerTurn (int idx) {
                 turnDone = true;
             }
         } else if (choice == 2) {
-            // STAND
             cout << "  " << players[idx].name << " stands at "
                  << calculateHandValue(&players[idx].hand) << ".\n";
             turnDone = true;
         } else if (choice == 3) {
-            // DOUBLE DOWN — double bet, receive exactly one more card, then stand
-            int extra            = (players[idx].chips >= players[idx].bet)
-                                   ? players[idx].bet
-                                   : players[idx].chips;
-            players[idx].chips  -= extra;
-            players[idx].bet    += extra;
+            int extra           = (players[idx].chips >= players[idx].bet)
+                                  ? players[idx].bet
+                                  : players[idx].chips;
+            players[idx].chips -= extra;
+            players[idx].bet   += extra;
             cout << "  ⬆ Double Down! New bet: " << players[idx].bet << "\n";
             addCardToHand(&players[idx].hand, dealCard(&deck));
             displayHand(&players[idx].hand, players[idx].name);
@@ -577,14 +468,11 @@ void playerTurn (int idx) {
                 players[idx].isBust = true;
                 updateStats(&leaderboard, players[idx].name, -1, players[idx].chips);
             }
-            turnDone = true;   // can only get one card on double down
+            turnDone = true;
         }
     }
 }
 
-// ============================================================
-//  DEALER TURN  (dealer hits until >= 17)
-// ============================================================
 void dealerTurn () {
     printLine();
     cout << "\n>>> Dealer's Turn <<<\n";
@@ -602,9 +490,6 @@ void dealerTurn () {
         cout << "  Dealer stands at " << calculateHandValue(&dealer.hand) << ".\n";
 }
 
-// ============================================================
-//  RESOLVE ROUND  — compare hands and pay out
-// ============================================================
 void resolveRound () {
     printLine();
     cout << "\n=== ROUND RESULTS ===\n";
@@ -612,9 +497,9 @@ void resolveRound () {
     bool dealerBust = isBust(&dealer.hand);
 
     for (int i = 0; i < numPlayers; i++) {
-        if (!players[i].isActive)       continue;
-        if (players[i].isBlackjackWin)  continue;  // already paid 3:2
-        if (players[i].isBust)          continue;  // already lost
+        if (!players[i].isActive)      continue;
+        if (players[i].isBlackjackWin) continue;
+        if (players[i].isBust)         continue;
 
         int playerVal = calculateHandValue(&players[i].hand);
         cout << "  " << players[i].name
@@ -632,16 +517,9 @@ void resolveRound () {
             cout << "❌ LOSE  -" << players[i].bet << " chips\n";
             updateStats(&leaderboard, players[i].name, -1, players[i].chips);
         }
-
-        // Sync chip count in hash table
-        PlayerStats* ps = findStats(&leaderboard, players[i].name);
-        if (ps) ps->totalChips = players[i].chips;
     }
 }
 
-// ============================================================
-//  RESET FOR NEXT ROUND
-// ============================================================
 void resetRound () {
     for (int i = 0; i < numPlayers; i++) {
         clearHand(&players[i].hand);
@@ -654,16 +532,12 @@ void resetRound () {
         }
     }
     clearHand(&dealer.hand);
-    initDeck(&deck);   // reshuffle for every round
+    initDeck(&deck);
 }
 
-// ============================================================
-//  PLAY ONE FULL ROUND
-// ============================================================
 void playRound () {
     resetRound();
 
-    // ── Betting Phase ─────────────────────────────────────
     cout << "\n━━━━━━━━━━━━━ BETTING PHASE ━━━━━━━━━━━━━\n";
     placeBets();
 
@@ -671,10 +545,8 @@ void playRound () {
     cout << "\n  Undo a bet? (y/n): "; cin >> undo;
     if (undo == 'y' || undo == 'Y') undoLastBet();
 
-    // ── Initial Deal ──────────────────────────────────────
     dealInitialCards();
 
-    // ── Player Turns via Queue ────────────────────────────
     cout << "\n━━━━━━━━━━━━━ PLAYER TURNS ━━━━━━━━━━━━━\n";
     clearQueue(&turnQueue);
     for (int i = 0; i < numPlayers; i++)
@@ -687,17 +559,12 @@ void playRound () {
             playerTurn(idx);
     }
 
-    // ── Dealer Turn ───────────────────────────────────────
     cout << "\n━━━━━━━━━━━━━ DEALER TURN ━━━━━━━━━━━━━━\n";
     dealerTurn();
 
-    // ── Results ───────────────────────────────────────────
     resolveRound();
 }
 
-// ============================================================
-//  SEARCH PLAYER (demonstrates search functionality)
-// ============================================================
 void searchPlayer () {
     char name[50];
     cout << "\nEnter player name to search: "; cin >> name;
@@ -710,9 +577,6 @@ void searchPlayer () {
     cout << "  Draws:  " << ps->draws      << "\n";
 }
 
-// ============================================================
-//  SHOW ALL PLAYERS' CURRENT CHIP STATUS
-// ============================================================
 void showChipStatus () {
     printLine();
     cout << "  PLAYER CHIP STATUS\n";
@@ -725,12 +589,8 @@ void showChipStatus () {
     }
 }
 
-// ============================================================
-//  MAIN MENU
-// ============================================================
 void mainMenu () {
     while (true) {
-        // Check if any player still active
         int active = 0;
         for (int i = 0; i < numPlayers; i++)
             if (players[i].isActive) active++;
@@ -752,10 +612,10 @@ void mainMenu () {
         int choice = safeInputInt(1, 5);
 
         switch (choice) {
-            case 1: playRound();        break;
+            case 1: playRound();                      break;
             case 2: displayLeaderboard(&leaderboard); break;
-            case 3: showChipStatus();   break;
-            case 4: searchPlayer();     break;
+            case 3: showChipStatus();                 break;
+            case 4: searchPlayer();                   break;
             case 5:
                 cout << "\n  Thanks for playing! Goodbye 🃏\n\n";
                 return;
@@ -763,9 +623,6 @@ void mainMenu () {
     }
 }
 
-// ============================================================
-//  MAIN
-// ============================================================
 int main () {
     srand((unsigned int)time(NULL));
 
@@ -780,7 +637,6 @@ int main () {
 
     mainMenu();
 
-    // Cleanup dynamic memory
     freeStack(&deck);
     clearQueue(&turnQueue);
     freeBetStack(&betHistory);
