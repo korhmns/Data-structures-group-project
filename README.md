@@ -196,8 +196,12 @@ blackjack-casino/
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Authors
 
-**Siyon Duendensirikul 68070503456
-**Akarawit Srivanno    68070503484
-**Korn Kongkar         68070503495
+| Name | Student ID |
+|------|------------|
+| Siyon Duendensirikul | 68070503456 |
+| Akarawit Srivanno | 68070503484 |
+| Korn Kongkar | 68070503495 |
+
+CPE112 — Programming with Data Structures · Semester 2/2025
